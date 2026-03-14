@@ -1,5 +1,10 @@
 # Evolutionary Scale Modeling
 
+## AppliedCL fine-tuning
+
+[RIMNet fine-tuning and Kaggle guide](APPLIEDCL_FINETUNING.md) describes the original AppliedCL interaction model and resumable final-block training workflow built on this credited Meta ESM dependency.
+
+
 [![atlas](https://user-images.githubusercontent.com/3605224/199301187-a9e38b3f-71a7-44be-94f4-db0d66143c53.png)](https://esmatlas.com)
 
 ***Update April 2023:*** Code for the two simultaneous preprints on protein design is now released! Code for "Language models generalize beyond natural proteins" is under [examples/lm-design/](examples/lm-design/). Code for "A high-level programming language for generative protein design" is under [examples/protein-programming-language/](examples/protein-programming-language/).
