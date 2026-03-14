@@ -54,3 +54,10 @@ Kaggle unpacks ZIP uploads, preserving `transfer.json` and its sibling folders.
 If multiple transfer manifests are attached, the updated notebook lists the
 available `INPUT_ROOT` values. Use a Kaggle-mounted path, not a Mac path.
 The upload archive and weights remain local and excluded from both Git repos.
+
+Kaggle may additionally unpack the development CSV's inner gzip archive. The
+current RIMNet notebook accepts either `.csv.gz` or the extracted `.csv`, checking
+the original content checksum before training. Existing uploaded transfer v1 is
+supported without another upload; use the updated notebook or the compatibility
+block in the full RIMNet protocol. The pretrained weights, training configuration
+and checkpoint identities stay unchanged.
