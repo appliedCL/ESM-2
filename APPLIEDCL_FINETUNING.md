@@ -42,3 +42,15 @@ The upstream Python model implementation is unchanged by this integration.
 RIMNet's task-specific implementation is maintained in one repository; this
 fork links to it rather than duplicating that training code. No PIFM code is
 used in the RIMNet implementation.
+
+## Required Kaggle input
+
+The notebook alone does not contain the model, dataset or warm-start files.
+From the RIMNet checkout, run `python3 scripts/package_kaggle_transfer.py` after
+preparation and the verified warm-start. Upload the resulting
+`runs/rimnet-kaggle-upload-v1.zip` as a **private Kaggle Dataset**, wait for
+processing, then attach it through the notebook's **Input → Add Input**.
+Kaggle unpacks ZIP uploads, preserving `transfer.json` and its sibling folders.
+If multiple transfer manifests are attached, the updated notebook lists the
+available `INPUT_ROOT` values. Use a Kaggle-mounted path, not a Mac path.
+The upload archive and weights remain local and excluded from both Git repos.
