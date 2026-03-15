@@ -61,3 +61,11 @@ the original content checksum before training. Existing uploaded transfer v1 is
 supported without another upload; use the updated notebook or the compatibility
 block in the full RIMNet protocol. The pretrained weights, training configuration
 and checkpoint identities stay unchanged.
+
+The continuation notebook validates the saved update inside each checkpoint.
+For the current run it requires step 1598 or later and rejects the original
+step-16 transfer and the accidental step-40 restart. Set `RESUME_OVERRIDE` to
+the prior saved Kaggle output checkpoint. For an intentional first run from the
+Mac weights, explicitly set `ALLOW_WARM_START = True` in the first setup cell.
+The T4 runtime now selects native FP16; BF16 is selected only on GPUs with native
+support. No speedup estimate is claimed before measuring that runtime.
