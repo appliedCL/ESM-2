@@ -1,71 +1,61 @@
 # AppliedCL: ESM-2 fine-tuning for RIMNet
 
 This fork supplies the credited Meta ESM implementation used by AppliedCL's
-RIMNet protein-interaction research. The original Meta architecture and
-pretrained weights remain upstream work under the [MIT license](LICENSE).
-AppliedCL's task-specific model and training implementation are in the
-[RIMNet repository](https://github.com/appliedCL/RIMNet).
+RIMNet protein-interaction research. Meta's architecture and pretrained weights
+remain upstream work under the [MIT license](LICENSE). The task-specific model
+and training workflow are original [RIMNet](https://github.com/appliedCL/RIMNet)
+code; no PIFM source is used.
 
-## What is fine-tuned
+## One-cell Kaggle sessions
 
-RIMNet uses `esm2_t33_650M_UR50D`: freeze the first 31 transformer blocks and
-update the final two complete blocks plus an original chain-moment interaction
-head. This is partial full-block fine-tuning, not LoRA. A matched frozen arm
-updates only the same head. The head receives separate mean/standard-deviation
-summaries for the two jointly encoded proteins. Evaluation averages both input
-orders. The learning rates are 0.00002 for ESM-2 and 0.0003 for the head, with
-AdamW, binary cross-entropy, and effective batch size 32.
+Use the [RIMNet Kaggle notebook](https://github.com/appliedCL/RIMNet/blob/main/notebooks/RIMNet_ESM2_finetuning_Kaggle.ipynb).
+It has one complete execution cell: run it for up to eight hours, then run the
+same cell again to continue. It rebuilds setup state, reads checkpoint metadata
+and selects the furthest compatible saved update.
 
-The verified Mac warm-start made 16 optimizer updates (512 training examples)
-per arm. It confirms that selected weights update, frozen weights remain
-unchanged, and checkpoints reload correctly. It supplies no validation AUROC or
-claim of improved generalization. Full training is a three-epoch development
-experiment continued on Kaggle; the final test is excluded from the transfer.
+Attach the prepared transfer Dataset, enable a GPU, and enable **Session options
+→ Persistence → Files only** before the session ends. Every optimizer update is
+saved atomically; `previous.pt` retains a previous valid save. A progress journal
+prevents large rollback. At each pause a downloadable `resume-bundle.zip`
+contains available checkpoints and run metadata. Keep saved outputs or the ZIP
+as an additional backup. An `.ipynb` file does not embed the learned weights.
+Background jobs need prior saved outputs attached as inputs; the editor's
+persistence setting does not provide their working state.
 
-## Implementation and Kaggle notebook
+The current minimum step is 48, the latest checkpoint actually confirmed
+available. An earlier run reported step 1598, but its checkpoint has not been
+recovered. The notebook does not claim those weights were restored. For an
+intentional first run from the original Mac update-16 checkpoint, explicitly
+set `allow_initial_warm_start = True` in the cell's settings. Leave it disabled
+for normal continuation.
 
-- [Portable ESM interface and task-specific head](https://github.com/appliedCL/RIMNet/blob/main/src/protbert_ppi/portable_esm.py)
-- [Resumable training implementation](https://github.com/appliedCL/RIMNet/blob/main/src/protbert_ppi/finetuning.py)
-- [Mac preparation and verification](https://github.com/appliedCL/RIMNet/blob/main/scripts/finetune_esm2.py)
-- [Kaggle notebook](https://github.com/appliedCL/RIMNet/blob/main/notebooks/RIMNet_ESM2_finetuning_Kaggle.ipynb)
-- [Full protocol and scientific limitations](https://github.com/appliedCL/RIMNet/blob/main/docs/ESM2_FINETUNING.md)
+The runtime selects native FP16 on T4; BF16 is used only where natively
+supported. No GPU speedup is claimed from CPU tests. The original scientific
+training code and checkpoint identities stay unchanged, and the session runtime
+is embedded so the existing input Dataset needs no re-upload. Kaggle may unpack
+the inner gzip CSV; exact content hashes are verified in either representation.
 
-Use the RIMNet preparation tool with this checkout supplied via `--esm-source`.
-It converts the locally cached, pinned Hugging Face ESM-2 weights, verifies
-numerical agreement, and builds a local fair-esm dependency wheel carrying the
-original license. The Kaggle transfer contains base weights, development data,
-code wheels and warm-start checkpoints, all excluded from Git. No private
-credentials or pretrained weights are committed here. See the full protocol
-for exact commands and offline notebook setup.
+## Scientific implementation
 
-The upstream Python model implementation is unchanged by this integration.
-RIMNet's task-specific implementation is maintained in one repository; this
-fork links to it rather than duplicating that training code. No PIFM code is
-used in the RIMNet implementation.
+RIMNet freezes the first 31 blocks of `esm2_t33_650M_UR50D` and trains the final
+two full transformer blocks plus an original chain-moment interaction head.
+The matched frozen control updates only the head. This is partial full-block
+fine-tuning. Both proteins are jointly encoded; separate mean/std summaries
+feed the symmetric interaction head, and evaluation averages input orders.
+The fixed budget is three epochs on the original development split. Final-test
+records are excluded from training and checkpoint selection.
 
-## Required Kaggle input
+- [Portable backbone and original interaction head](https://github.com/appliedCL/RIMNet/blob/main/src/protbert_ppi/portable_esm.py)
+- [Pinned scientific training loop](https://github.com/appliedCL/RIMNet/blob/main/src/protbert_ppi/finetuning.py)
+- [Checkpoint/session wrapper](https://github.com/appliedCL/RIMNet/blob/main/src/protbert_ppi/notebook_session.py)
+- [Full protocol, setup and limitations](https://github.com/appliedCL/RIMNet/blob/main/docs/ESM2_FINETUNING.md)
 
-The notebook alone does not contain the model, dataset or warm-start files.
-From the RIMNet checkout, run `python3 scripts/package_kaggle_transfer.py` after
-preparation and the verified warm-start. Upload the resulting
-`runs/rimnet-kaggle-upload-v1.zip` as a **private Kaggle Dataset**, wait for
-processing, then attach it through the notebook's **Input → Add Input**.
-Kaggle unpacks ZIP uploads, preserving `transfer.json` and its sibling folders.
-If multiple transfer manifests are attached, the updated notebook lists the
-available `INPUT_ROOT` values. Use a Kaggle-mounted path, not a Mac path.
-The upload archive and weights remain local and excluded from both Git repos.
-
-Kaggle may additionally unpack the development CSV's inner gzip archive. The
-current RIMNet notebook accepts either `.csv.gz` or the extracted `.csv`, checking
-the original content checksum before training. Existing uploaded transfer v1 is
-supported without another upload; use the updated notebook or the compatibility
-block in the full RIMNet protocol. The pretrained weights, training configuration
-and checkpoint identities stay unchanged.
-
-The continuation notebook validates the saved update inside each checkpoint.
-For the current run it requires step 1598 or later and rejects the original
-step-16 transfer and the accidental step-40 restart. Set `RESUME_OVERRIDE` to
-the prior saved Kaggle output checkpoint. For an intentional first run from the
-Mac weights, explicitly set `ALLOW_WARM_START = True` in the first setup cell.
-The T4 runtime now selects native FP16; BF16 is selected only on GPUs with native
-support. No speedup estimate is claimed before measuring that runtime.
+Use the RIMNet preparation tool with this source checkout supplied via
+`--esm-source`. It converts locally cached pinned weights, verifies numerical
+agreement and builds a local fair-esm dependency wheel carrying the original
+license. Upload archives, datasets, model weights, optimizer checkpoints and
+logs remain excluded from Git. The upstream Python model source is unchanged.
+Code updates can be saved privately through the official Kaggle CLI's no-run
+option without starting a training job. Editor persistence is a separate
+Kaggle setting. Session recovery tests establish software correctness; no
+AUROC improvement or achievement of >0.90 is asserted by those tests.
